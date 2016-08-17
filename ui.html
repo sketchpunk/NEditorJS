@@ -1,0 +1,64 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="NEditor.css">
+		<script src="NEditor.js"></script>
+		<script>
+			window.addEventListener("load",function(e){
+				var n4 = new NEditor.Node("Compile Results");
+				var n4i1 = n4.addInput("Input A");
+				var n4i2 = n4.addInput("Input B");
+				n4.setPosition(700,180);
+
+
+				var n3 = new NEditor.Node("Some Process");
+				var n3i1 = n3.addInput("Input");
+				var n3o1 = n3.addOutput("Output");
+				n3.setPosition(300,50);
+				n3.setWidth(200);
+
+				n3o1.connectTo(n4i2);
+
+
+				var n2 = new NEditor.Node("Some Other Process");
+				var n2i1 = n2.addInput("Input");
+				var n2o1 = n2.addOutput("Output");
+				n2.setPosition(300,300);
+				n2.setWidth(200);
+
+				n2o1.connectTo(n4i1);
+
+
+				var n1 = new NEditor.Node("Starting Node");
+				var n1o1 = n1.addOutput("Output");
+				n1.setPosition(50,200);
+
+				n1o1.connectTo(n2i1);
+				n1o1.connectTo(n3i1);
+
+				var n5 = new NEditor.Node("SketchPunk Labs");
+				n5.addInput("Donate :)");
+				n5.setPosition(700,500);
+
+				var n6 = new NEditor.Node("The User");
+				n6.addOutput("1 dollar");
+				n6.setPosition(500,500);
+
+			});
+		</script>
+	</head>
+<body>
+
+<svg id="connsvg"></svg>
+
+<p style="color:#a0a0a0; bottom:1px; position:absolute">
+	<i style="color:lime;">Instructions</i><br>
+	- Click on an output connecting dots to start a new connection.<br>
+	- When new connection is made, click on an input connecting dot to complete connection.<br>
+	- Click and hold node title bars to drag them around.
+
+	<br><br>&copy; 2016 Sketchpunk Labs;
+</p>
+
+
+</body>
+</html>
