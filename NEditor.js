@@ -340,13 +340,14 @@ NEditor.Connector.prototype.clearPath = function(){
 //###########################################################################
 // Node Object
 //###########################################################################
-NEditor.Node = function(sTitle, settings){
+NEditor.Node = function(sTitle, options){
 	this.Title = sTitle;
 	this.Inputs = [];
 	this.Outputs = [];
+	this.data = {};
 	//adds settings :/ dunno the best way to mantain defaults
-	this.Settings = {
-		"AutoInputs" : settings != undefined ? (settings["AutoInputs"] || false) : false 
+	this.options = {
+		"AutoInputs" : options != undefined ? (options["AutoInputs"] || false) : false 
 	}
 
 	//.........................
@@ -365,6 +366,14 @@ NEditor.Node = function(sTitle, settings){
 	this.eList = document.createElement("ul");
 	this.eRoot.appendChild(this.eList);
 };
+
+NEditor.Node.prototype.setData = function(data){
+	this.data = data;
+}
+
+NEditor.Node.prototype.getData = function(data){
+	return this.data;
+}
 
 //wanted a function to split up connections so when i automate adding new conns i can just check with
 //node.inputConnectors().disconnected.length
