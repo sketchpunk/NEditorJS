@@ -114,8 +114,8 @@ NEditor.onNodeDragMouseUp = function(e){
 NEditor.onNodeDragMouseMove = function(e){
 	e.stopPropagation(); e.preventDefault();
 	if(NEditor.dragItem){
-	  NEditor.dragItem.style.left = e.pageX + NEditor.offsetX;
-	  NEditor.dragItem.style.top = e.pageY + NEditor.offsetY;
+	  NEditor.dragItem.style.left = e.pageX + NEditor.offsetX + "px";
+	  NEditor.dragItem.style.top = e.pageY + NEditor.offsetY + "px";
 	  NEditor.dragItem.ref.updatePaths();
 	}
 };
@@ -174,7 +174,7 @@ NEditor.onInputClick = function(e){
 		case 0: //Not in drag mode
 		  var path = o.clearPath();
 		  if(path != null) NEditor.beginConnDrag(path);
-		  break;      
+		  break;
 	}
 }
 
@@ -217,7 +217,7 @@ NEditor.Connector.prototype.getPos = function(){ return NEditor.getConnPos(this.
 
 //Just updates the UI if the connection is currently active
 NEditor.Connector.prototype.resetState = function(){
-	var isActive = (this.paths && this.paths.length > 0) || (this.OutputConn != null); 
+	var isActive = (this.paths && this.paths.length > 0) || (this.OutputConn != null);
 
 	if(isActive) this.root.classList.add("Active");
 	else this.root.classList.remove("Active");
@@ -242,7 +242,7 @@ NEditor.Connector.prototype.addPath = function(){
 			output:this
 		};
 
-	NEditor.svg.appendChild(dat.path); 
+	NEditor.svg.appendChild(dat.path);
 	this.paths.push(dat);
 	return dat;
 }
@@ -327,7 +327,7 @@ NEditor.Node = function(sTitle){
 };
 
 
-NEditor.Node.prototype.addInput = function(name){ 
+NEditor.Node.prototype.addInput = function(name){
 	var o = new NEditor.Connector(this.eList,true,name) ;
 	this.Inputs.push(o);
 	return o;
