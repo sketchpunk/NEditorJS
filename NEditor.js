@@ -242,6 +242,8 @@ NEditor.Connector.prototype.updateUI = function(){
 	this.label.innerHTML = this.name;
 	this.root.className = (this.isInput)?"Input":"Output";
 	this.dot.innerHTML = "&nbsp;";
+	this.resetState();
+		
 }
 
 /*--------------------------------------------------------
