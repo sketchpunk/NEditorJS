@@ -175,7 +175,7 @@ NEditor.onInputClick = function(e){
 		case 0: //Not in drag mode
 		  var path = o.clearPath();
 		  if(path != null) NEditor.beginConnDrag(path);
-		  
+
 		  o.node.autoOrganise();
 		  break;
 	}
@@ -312,12 +312,12 @@ NEditor.Connector.prototype.applyPath = function(o){
 	NEditor.setCurveColor(o.path,true);
 	
 	//start automation on adding new incoming connections
-	if(this.node.Settings && this.node.Settings.AutoInputs != false  ){
+	if(this.node.options && this.node.options.AutoInputs != false  ){
 		var conns = this.node.inputConnectors();
 		if(conns.disconnected.length == 0){
 			this.node.addInput( 
 				//automatic naming done in the with a function defined at initalliaztion of the Node
-				this.node.Settings.AutoInputs.name(this.node.Inputs) 
+				this.node.options.AutoInputs.name(this.node.Inputs) 
 			);
 		}
 	}
@@ -394,7 +394,7 @@ NEditor.Node.prototype.inputConnectors = function(){
 //renames connections based on scheme
 //adds a new blank connection to the end
 NEditor.Node.prototype.autoOrganise = function(){
-	if(!this.Settings || (!this.Settings.AutoInputs)  ){ 
+	if(!this.options || (!this.options.AutoInputs)  ){ 
 		return this;
 	}
 
@@ -406,7 +406,7 @@ NEditor.Node.prototype.autoOrganise = function(){
 			conn.removeSelf();
 			
 		} else {
-			conn.name = this.Settings.AutoInputs.name(keep);
+			conn.name = this.options.AutoInputs.name(keep);
 			conn.updateUI();
 			keep.push(conn);
 		}
@@ -415,7 +415,7 @@ NEditor.Node.prototype.autoOrganise = function(){
 	this.Inputs = keep;
 	
 	this.addInput(
-		this.Settings.AutoInputs.name(this.Inputs) 
+		this.options.AutoInputs.name(this.Inputs) 
 	);
 
 	this.updatePaths();
