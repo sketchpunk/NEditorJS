@@ -24,7 +24,7 @@ NEditor.init = function(){
 /*--------------------------------------------------------
 Global Function */
 
-//Trail up the parent nodes to get the X,Y position of an element
+//Trail up the node nodes to get the X,Y position of an element
 NEditor.getOffset = function(elm){
 	var pos = {x:0,y:0};
 	while(elm){
@@ -170,10 +170,13 @@ NEditor.onInputClick = function(e){
 		case 2: //Path Drag
 		  o.applyPath(NEditor.dragItem);
 		  NEditor.endConnDrag();
+		  
 		  break;
 		case 0: //Not in drag mode
 		  var path = o.clearPath();
 		  if(path != null) NEditor.beginConnDrag(path);
+
+		  o.node.autoOrganise();
 		  break;
 	}
 }
@@ -185,14 +188,17 @@ NEditor.onInputClick = function(e){
 
 //Connector UI Object. Ideally this should be an abstract class as a base for an output and input class, but save time
 //I wrote this object to handle both types. Its a bit hokey but if it becomes a problem I'll rewrite it in a better OOP way.
-NEditor.Connector = function(pElm,isInput,name){
+NEditor.Connector = function(node,isInput,name){
+	this.node = node;
 	this.name   = name;
 	this.root   = document.createElement("li");
 	this.dot    = document.createElement("i");
 	this.label  = document.createElement("span");
+	this.isInput = isInput;
+	var pElm = this.node.eList;
 
 	//Input/Output Specific values
-	if(isInput) this.OutputConn = null;		//Input can only handle a single connection.
+	if(this.isInput) this.OutputConn = null;		//Input can only handle a single connection.
 	else this.paths = [];    				//Outputs can connect to as many inputs is needed
 
 	//Create Elements
@@ -201,13 +207,15 @@ NEditor.Connector = function(pElm,isInput,name){
 	this.root.appendChild(this.label);
 
 	//Define the Elements
-	this.root.className = (isInput)?"Input":"Output";
+	this.root.className = (this.isInput)?"Input":"Output";
 	this.root.ref = this;
-	this.label.innerHTML = name;
+	this.label.innerHTML = this.name;
 	this.dot.innerHTML = "&nbsp;";
 
-	this.dot.addEventListener("click", (isInput)?NEditor.onInputClick:NEditor.onOutputClick );
+	this.dot.addEventListener("click", (this.isInput)?NEditor.onInputClick:NEditor.onOutputClick );
 };
+
+
 
 /*--------------------------------------------------------
 Common Methods */
@@ -229,6 +237,14 @@ NEditor.Connector.prototype.updatePaths = function(){
 	else if( this.OutputConn ) NEditor.updateConnPath(this.OutputConn);
 }
 
+//Used mostly for dragging nodes, so this allows the paths to be redrawn
+NEditor.Connector.prototype.updateUI = function(){
+	this.label.innerHTML = this.name;
+	this.root.className = (this.isInput)?"Input":"Output";
+	this.dot.innerHTML = "&nbsp;";
+	this.resetState();
+		
+}
 
 /*--------------------------------------------------------
 Output Methods */
@@ -268,6 +284,12 @@ NEditor.Connector.prototype.connectTo = function(o){
 	o.applyPath(conn);
 }
 
+//removes connection.... although im not happy with this as it just removes from the ui
+NEditor.Connector.prototype.removeSelf = function(){
+	var pElm = this.node.eList;
+	pElm.removeChild(this.root);
+}
+
 /*--------------------------------------------------------
 Input Methods */
 
@@ -275,9 +297,11 @@ Input Methods */
 NEditor.Connector.prototype.applyPath = function(o){
 	//If a connection exists, disconnect it.
 	if(this.OutputConn != null) this.OutputConn.output.removePath(this.OutputConn);
-
+	
 	//If moving a connection to here, tell previous input to clear itself.
 	if(o.input != null) o.input.clearPath();
+
+
 
 	o.input = this;			//Saving this connection as the input reference
 	this.OutputConn = o;	//Saving the path reference to this object
@@ -286,6 +310,18 @@ NEditor.Connector.prototype.applyPath = function(o){
 
 	NEditor.updateConnPath(o);
 	NEditor.setCurveColor(o.path,true);
+	
+	//start automation on adding new incoming connections
+	if(this.node.options && this.node.options.AutoInputs != false  ){
+		var conns = this.node.inputConnectors();
+		if(conns.disconnected.length == 0){
+			this.node.addInput( 
+				//automatic naming done in the with a function defined at initalliaztion of the Node
+				this.node.options.AutoInputs.name(this.node.Inputs) 
+			);
+		}
+	}
+
 }
 
 //clearing the connection from an output
@@ -304,10 +340,15 @@ NEditor.Connector.prototype.clearPath = function(){
 //###########################################################################
 // Node Object
 //###########################################################################
-NEditor.Node = function(sTitle){
+NEditor.Node = function(sTitle, options){
 	this.Title = sTitle;
 	this.Inputs = [];
 	this.Outputs = [];
+	this.data = {};
+	//adds settings :/ dunno the best way to mantain defaults
+	this.options = {
+		"AutoInputs" : options != undefined ? (options["AutoInputs"] || false) : false 
+	}
 
 	//.........................
 	this.eRoot = document.createElement("div");
@@ -326,17 +367,88 @@ NEditor.Node = function(sTitle){
 	this.eRoot.appendChild(this.eList);
 };
 
+NEditor.Node.prototype.setData = function(data){
+	this.data = data;
+}
 
-NEditor.Node.prototype.addInput = function(name){
-	var o = new NEditor.Connector(this.eList,true,name) ;
+NEditor.Node.prototype.getData = function(data){
+	return this.data;
+}
+
+//wanted a function to split up connections so when i automate adding new conns i can just check with
+//node.inputConnectors().disconnected.length
+
+NEditor.Node.prototype.inputConnectors = function(){
+	var connectors = {"connected" : [],  "disconnected" : []};
+	for(var i = 0;i < this.Inputs.length; i++){
+		if(this.Inputs[i].OutputConn != null){
+			connectors.connected.push(this.Inputs[i])
+		} else { 
+			connectors.disconnected.push(this.Inputs[i])
+		}
+	}
+	return connectors;
+}
+
+//removes dead connections on autoInput Nodes 
+//renames connections based on scheme
+//adds a new blank connection to the end
+NEditor.Node.prototype.autoOrganise = function(){
+	if(!this.options || (!this.options.AutoInputs)  ){ 
+		return this;
+	}
+
+	var keep = [];
+	for(var i = 0;i < this.Inputs.length;i++){
+		var conn = this.Inputs[i];
+		
+		if(conn.OutputConn == null){
+			conn.removeSelf();
+			
+		} else {
+			conn.name = this.options.AutoInputs.name(keep);
+			conn.updateUI();
+			keep.push(conn);
+		}
+	}
+
+	this.Inputs = keep;
+	
+	this.addInput(
+		this.options.AutoInputs.name(this.Inputs) 
+	);
+
+	this.updatePaths();
+	return this;
+}
+
+
+NEditor.Node.prototype.addInput = function(name){ 
+	var o = new NEditor.Connector(this,true,name) ;
 	this.Inputs.push(o);
 	return o;
 }
 
 NEditor.Node.prototype.addOutput = function(name){
-	var o = new NEditor.Connector(this.eList,false,name);
+	var o = new NEditor.Connector(this,false,name);
 	this.Outputs.push(o);
 	return o;
+}
+
+//finds and removes input based on name.... so atm im not checking but i think that names per node need to be unique
+NEditor.Node.prototype.removeInput = function(name){ 
+	for(var i = 0;i < this.Inputs.length;i++){
+		var conn = this.Inputs[i];
+		if(r.name == name){
+			r.removeSelf();
+		}
+	}
+}
+
+NEditor.Node.prototype.removeOutput = function(name){
+	// var o = new NEditor.Connector(this,false,name);
+	// this.Outputs.push(o);
+	// return o;
 }
 
 NEditor.Node.prototype.getInputPos = function(i){ return NEditor.getConnPos(this.Inputs[i].dot); }

@@ -19,7 +19,15 @@
 				n3o1.connectTo(n4i2);
 
 
-				var n2 = new NEditor.Node("Some Other Process");
+				var n2 = new NEditor.Node("Auto updating inputs", {
+					"AutoInputs" : {
+						"name" : function(list){
+							return "input_" + ( list.length + 1 )
+						}
+					}
+				});
+
+
 				var n2i1 = n2.addInput("Input");
 				var n2o1 = n2.addOutput("Output");
 				n2.setPosition(300,300);
